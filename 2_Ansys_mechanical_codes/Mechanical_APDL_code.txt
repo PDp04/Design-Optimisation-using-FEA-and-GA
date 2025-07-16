@@ -1,0 +1,114 @@
+!This Code aims at finding and saving the nodes of the Leading and the trailing edge of the geometry and the consequitive nodes by making there components.
+!The components are such that the te_1 stands for the trailing edge and the te_r_2 stands for the nodes just right to the te, and so on
+
+!Created By Pranav Deshpande
+! Date July 2025
+
+/prep7
+allsel
+cmsel,all
+cmlist
+cmsel,s, FRAME_ACP__PRE__,node
+nplot 
+
+! Creates a user defined coordinate system
+
+n,100000,0,0,0
+n,100001,1e-2,0,0
+n,100002,1e-2,1e-2,0
+cs,8002,0,100000,100001,100002
+csys,8002
+ndele,100000,100003,1
+
+! Delete the components which are not needed
+
+cmdele, BASE_ACP__PRE__
+cmdele, fin_ACP__PRE__
+cmdele, fix_ACP__PRE__
+cmdele,PLY_WRAP_ACP__PRE__
+cmlist
+
+! Finding the Leading and the Trailing edge node of the FRAME
+
+cmsel,s, FRAME_ACP__PRE__,node
+nsel,r,loc,y,0,10000
+*GET,YMIN,NODE,0,MNLOC,Y
+nsel,r,loc,x,0,1000
+nsel,r,loc,y,ymin-5e-3,ymin+5e-3
+cm,te_1,node
+cmsel,s, FRAME_ACP__PRE__,node
+nsel,r,loc,y,0,10000
+nsel,r,loc,x,0,-1000
+nsel,r,loc,y,ymin-5e-3,ymin+5e-3
+cm,le_1,node
+dsys
+csys
+
+! Finding the consequitive nodes and grouping into components
+! This done by selecting elements joining the node and then the node forming the element, this gives the consequitive nodes, then delete the sources nodes and then grouping left and right with respect to normal Coordinate system
+
+cmsel,s,te_1
+*do,i,2,15,1
+esln
+nsle
+*if,i,gt,2,then
+*do,j,2,i-1,1
+cmsel,u,te_r_%j%
+cmsel,u,te_l_%j%
+*enddo
+*endif
+cmsel,u,te_1
+cmsel,r, FRAME_ACP__PRE__,node
+cm,dummy,node
+nsel,r,loc,y,0,1000
+cm,TE_r_%i%,node
+cmsel,s,dummy
+cmsel,u,TE_r_%i%
+cm,TE_l_%i%,node
+cmsel,s,dummy
+*enddo
+cmdele,dummy
+cmsel,s,le_1
+*do,i,2,15,1
+esln
+nsle
+*if,i,gt,2,then
+*do,j,2,i-1,1
+cmsel,u,le_r_%j%
+cmsel,u,le_l_%j%
+*enddo
+*endif
+cmsel,u,le_1
+cmsel,r, FRAME_ACP__PRE__,node
+cm,dummy,node
+cmsel,s,dummy
+nsel,r,loc,y,0,1000
+cm,lE_r_%i%,node
+cmsel,s,dummy
+cmsel,u,lE_r_%i%
+cm,lE_l_%i%,node
+cmsel,s,dummy
+*enddo
+cmdele,dummy
+
+! Writing the Nodes into *.node format
+
+cmsel,s,te_1
+nwrite,te_1,node
+cmsel,s,le_1
+nwrite,le_1,node
+*do,i,2,15,1
+cmsel,s,te_l_%i%
+nwrite,te_l_%i%,node
+cmsel,s,te_r_%i%
+nwrite,te_r_%i%,node
+cmsel,s,le_l_%i%
+nwrite,le_l_%i%,node
+cmsel,s,le_r_%i%
+nwrite,le_r_%i%,node
+*enddo
+
+! Moving the *.node files to the desired directory (folder)
+
+/sys, mkdir, Nodes
+/sys, move,*.node,Nodes
